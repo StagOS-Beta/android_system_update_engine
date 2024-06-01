@@ -73,11 +73,26 @@ class SideloadDaemonState : public DaemonStateInterface,
                               status == UpdateStatus::FINALIZING)) {
       // Split the progress bar in two parts for the two stages DOWNLOADING and
       // FINALIZING.
-      ReportStatus(base::StringPrintf(
-          "ui_print Step %d/2", status == UpdateStatus::DOWNLOADING ? 1 : 2));
+      // Customize the messages for each stage
+      if (status == UpdateStatus::DOWNLOADING) {
+        ReportStatus("ui_print");
+        ReportStatus("ui_print Initialising the update process...");
+        ReportStatus("ui_print Stagifying your experience, sit tight!");
+        ReportStatus("ui_print");
+      } else if (status == UpdateStatus::FINALIZING) {
+        ReportStatus("ui_print");
+        ReportStatus("ui_print Finalizing the update, almost there!");
+        ReportStatus("ui_print Your device will be Stagified in a moment.");
+        ReportStatus("ui_print");
+      }
       ReportStatus(base::StringPrintf("progress 0.5 0"));
     }
-    if (status_ != status || fabs(progress - progress_) > 0.005) {
+    if ((status_ != status || fabs(progress - progress_) > 0.005) && status == UpdateStatus::DOWNLOADING) {
+      // Customize the progress message
+      if (static_cast<int>(progress * 100) % 25 == 0) {
+        ReportStatus(base::StringPrintf(
+          "ui_print Flashing progress: %.0lf%%", progress * 100));
+      }
       ReportStatus(base::StringPrintf("set_progress %.2lf", progress));
     }
     progress_ = progress;
@@ -85,7 +100,12 @@ class SideloadDaemonState : public DaemonStateInterface,
   }
 
   void SendPayloadApplicationComplete(ErrorCode error_code) override {
-    if (error_code != ErrorCode::kSuccess) {
+    if (error_code == ErrorCode::kSuccess) {
+      ReportStatus("ui_print");
+      ReportStatus("ui_print Update successful!");
+      ReportStatus("ui_print Your device is now Stagified. Enjoy the fresh experience!");
+      ReportStatus("ui_print");
+    } else {
       ReportStatus(
           base::StringPrintf("ui_print Error applying update: %d (%s)",
                              error_code,
@@ -98,6 +118,11 @@ class SideloadDaemonState : public DaemonStateInterface,
   // Getters.
   UpdateStatus status() { return status_; }
   ErrorCode error_code() { return error_code_; }
+
+  // Public function to report custom messages  
+  void ReportCustomMessage(const string& message) {
+    ReportStatus(message);
+  }
 
  private:
   // Report a status message in the status_stream_, if any. These messages
@@ -134,8 +159,23 @@ bool ApplyUpdatePayload(const string& payload,
   Subprocess subprocess;
   subprocess.Init(&handler);
 
+
   SideloadDaemonState sideload_daemon_state(
       brillo::FileStream::FromFileDescriptor(status_fd, true, nullptr));
+
+  // Print custom message before flashing starts
+  sideload_daemon_state.ReportCustomMessage("ui_print Your Device is entering Nirvana...");
+  sideload_daemon_state.ReportCustomMessage("ui_print");
+  sideload_daemon_state.ReportCustomMessage("ui_print ...._______.___________.    ___       _______  ");
+  sideload_daemon_state.ReportCustomMessage("ui_print .../       |           |   /   \\     /  _____| ");
+  sideload_daemon_state.ReportCustomMessage("ui_print ..|   (----`---|  |----`  /  ^  \\   |  |  __   ");
+  sideload_daemon_state.ReportCustomMessage("ui_print ...\\   \\       |  |      /  /_\\  \\  |  | |_ |  ");
+  sideload_daemon_state.ReportCustomMessage("ui_print ----)   |      |  |     /  _____  \\ |  |__| |  ");
+  sideload_daemon_state.ReportCustomMessage("ui_print |______/       |__|    /__/     \\__\\ \\______|  ");
+  sideload_daemon_state.ReportCustomMessage("ui_print");
+  sideload_daemon_state.ReportCustomMessage("ui_print ================Sic Parvis Magna================");
+  sideload_daemon_state.ReportCustomMessage("ui_print");
+
 
   // During the sideload we don't access the prefs persisted on disk but instead
   // use a temporary memory storage.
