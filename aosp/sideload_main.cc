@@ -79,11 +79,6 @@ class SideloadDaemonState : public DaemonStateInterface,
         ReportStatus("ui_print Initialising the update process...");
         ReportStatus("ui_print Stagifying your experience, sit tight!");
         ReportStatus("ui_print");
-      } else if (status == UpdateStatus::FINALIZING) {
-        ReportStatus("ui_print");
-        ReportStatus("ui_print Finalizing the update, almost there!");
-        ReportStatus("ui_print Your device will be Stagified in a moment.");
-        ReportStatus("ui_print");
       }
       ReportStatus(base::StringPrintf("progress 0.5 0"));
     }
@@ -92,6 +87,13 @@ class SideloadDaemonState : public DaemonStateInterface,
       if (static_cast<int>(progress * 100) % 25 == 0) {
         ReportStatus(base::StringPrintf(
           "ui_print Flashing progress: %.0lf%%", progress * 100));
+          // if 100
+          if (progress == 1.0) {
+            ReportStatus("ui_print");
+            ReportStatus("ui_print Finalizing the update, almost there!");
+            ReportStatus("ui_print Your device will be Stagified in a moment.");
+            ReportStatus("ui_print");
+          }
       }
       ReportStatus(base::StringPrintf("set_progress %.2lf", progress));
     }
